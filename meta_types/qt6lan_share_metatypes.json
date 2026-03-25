@@ -1,0 +1,272 @@
+[
+    {
+        "classes": [
+            {
+                "className": "DiscoveryManager",
+                "lineNumber": 11,
+                "methods": [
+                    {
+                        "access": "public",
+                        "index": 5,
+                        "lineNumber": 22,
+                        "name": "startBroadcasting",
+                        "returnType": "void"
+                    }
+                ],
+                "object": true,
+                "properties": [
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 0,
+                        "lineNumber": 14,
+                        "name": "peers",
+                        "notify": "peersChanged",
+                        "read": "peers",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QVariantList",
+                        "user": false
+                    }
+                ],
+                "qualifiedClassName": "DiscoveryManager",
+                "signals": [
+                    {
+                        "access": "public",
+                        "index": 0,
+                        "lineNumber": 25,
+                        "name": "peersChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "ip",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "name",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 1,
+                        "lineNumber": 26,
+                        "name": "peerFound",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "ip",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 2,
+                        "lineNumber": 27,
+                        "name": "peerRemoved",
+                        "returnType": "void"
+                    }
+                ],
+                "slots": [
+                    {
+                        "access": "private",
+                        "index": 3,
+                        "lineNumber": 30,
+                        "name": "sendBroadcast",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "private",
+                        "index": 4,
+                        "lineNumber": 31,
+                        "name": "processPendingDatagrams",
+                        "returnType": "void"
+                    }
+                ],
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "QObject"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "discoverymanager.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
+                "className": "FileTransferManager",
+                "lineNumber": 11,
+                "methods": [
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "ip",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "filePath",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 7,
+                        "lineNumber": 16,
+                        "name": "sendFile",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "ip",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "message",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 8,
+                        "lineNumber": 17,
+                        "name": "sendMessage",
+                        "returnType": "void"
+                    }
+                ],
+                "object": true,
+                "qualifiedClassName": "FileTransferManager",
+                "signals": [
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "bytesSent",
+                                "type": "qint64"
+                            },
+                            {
+                                "name": "totalBytes",
+                                "type": "qint64"
+                            }
+                        ],
+                        "index": 0,
+                        "lineNumber": 21,
+                        "name": "progressUpdated",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "error",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 1,
+                        "lineNumber": 22,
+                        "name": "errorOccurred",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "fromIp",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "message",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 2,
+                        "lineNumber": 23,
+                        "name": "messageReceived",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "success",
+                                "type": "bool"
+                            },
+                            {
+                                "name": "message",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 3,
+                        "lineNumber": 25,
+                        "name": "transferFinished",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "fileName",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "fullPath",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 4,
+                        "lineNumber": 26,
+                        "name": "fileReceived",
+                        "returnType": "void"
+                    }
+                ],
+                "slots": [
+                    {
+                        "access": "private",
+                        "index": 5,
+                        "lineNumber": 29,
+                        "name": "onNewConnection",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "private",
+                        "index": 6,
+                        "lineNumber": 30,
+                        "name": "onReadyRead",
+                        "returnType": "void"
+                    }
+                ],
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "QObject"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "filetransfermanager.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
+                "className": "MainWindow",
+                "lineNumber": 14,
+                "object": true,
+                "qualifiedClassName": "MainWindow",
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "QMainWindow"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "mainwindow.h",
+        "outputRevision": 69
+    }
+]

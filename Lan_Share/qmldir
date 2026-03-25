@@ -1,0 +1,5 @@
+module Lan_Share
+typeinfo Lan_Share.qmltypes
+prefer :/qt/qml/Lan_Share/
+depends QtQuick
+

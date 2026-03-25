@@ -1,0 +1,3 @@
+D:/Lan_Share/Lan_Share_autogen/include/../EWIEGA46WW/moc_discoverymanager.cpp.json
+D:/Lan_Share/Lan_Share_autogen/include/../EWIEGA46WW/moc_filetransfermanager.cpp.json
+D:/Lan_Share/Lan_Share_autogen/include/../EWIEGA46WW/moc_mainwindow.cpp.json

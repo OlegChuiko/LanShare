@@ -1,0 +1,204 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"jsonFile" : "directory-.-Debug-d0094a50bb2071803777.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "Lan_Share",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "Lan_Share::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Lan_Share-Debug-66260f050564ec75c510.json",
+					"name" : "Lan_Share",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "Lan_Share_autogen::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Lan_Share_autogen-Debug-30047493c7e3af62654a.json",
+					"name" : "Lan_Share_autogen",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "Lan_Share_autogen_timestamp_deps::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Lan_Share_autogen_timestamp_deps-Debug-a0e99ff69078c07f3713.json",
+					"name" : "Lan_Share_autogen_timestamp_deps",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "Lan_Share_copy_qml::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Lan_Share_copy_qml-Debug-1b1f14d4d4032eeea473.json",
+					"name" : "Lan_Share_copy_qml",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "Lan_Share_copy_res::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Lan_Share_copy_res-Debug-a4478bcb120e57c3dd35.json",
+					"name" : "Lan_Share_copy_res",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "Lan_Share_qmlimportscan::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Lan_Share_qmlimportscan-Debug-f3c792ef6eaf8937f12e.json",
+					"name" : "Lan_Share_qmlimportscan",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "Lan_Share_qmllint::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Lan_Share_qmllint-Debug-8798ec9705d59c434639.json",
+					"name" : "Lan_Share_qmllint",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "Lan_Share_qmllint_json::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Lan_Share_qmllint_json-Debug-dc533fba55ea4a3eb09e.json",
+					"name" : "Lan_Share_qmllint_json",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "Lan_Share_qmllint_module::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Lan_Share_qmllint_module-Debug-aff13792cba3ddc690a7.json",
+					"name" : "Lan_Share_qmllint_module",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "Lan_Share_qmltyperegistration::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Lan_Share_qmltyperegistration-Debug-a694ecfe297b8eb938fe.json",
+					"name" : "Lan_Share_qmltyperegistration",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "all_aotstats::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-all_aotstats-Debug-dbc1eff7ddada8639956.json",
+					"name" : "all_aotstats",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "all_qmllint::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-all_qmllint-Debug-67c1f8bc96214660fedb.json",
+					"name" : "all_qmllint",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "all_qmllint_json::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-all_qmllint_json-Debug-928366bbf1e509566da6.json",
+					"name" : "all_qmllint_json",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "all_qmllint_module::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-all_qmllint_module-Debug-3110f52ca76147eea9fd.json",
+					"name" : "all_qmllint_module",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "all_qmltyperegistrations::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-all_qmltyperegistrations-Debug-70490271a40c9dafdf9d.json",
+					"name" : "all_qmltyperegistrations",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "generate_qmlls_build_ini_file::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-generate_qmlls_build_ini_file-Debug-d0901ff0d00a2f162641.json",
+					"name" : "generate_qmlls_build_ini_file",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "module_Lan_Share_aotstats_target::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-module_Lan_Share_aotstats_target-Debug-cec5421074004200391d.json",
+					"name" : "module_Lan_Share_aotstats_target",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "D:/Lan_Share",
+		"source" : "D:/Lan_Share"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 7
+	}
+}

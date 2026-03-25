@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/">
+    <file alias="/qt/qml/Lan_Share">D:/Lan_Share/Lan_Share</file>
+
+  </qresource>
+</RCC>

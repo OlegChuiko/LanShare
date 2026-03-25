@@ -1,0 +1,18 @@
+{
+    "classes": [
+        {
+            "className": "MainWindow",
+            "lineNumber": 14,
+            "object": true,
+            "qualifiedClassName": "MainWindow",
+            "superClasses": [
+                {
+                    "access": "public",
+                    "name": "QMainWindow"
+                }
+            ]
+        }
+    ],
+    "inputFile": "mainwindow.h",
+    "outputRevision": 69
+}
