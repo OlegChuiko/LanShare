@@ -93,6 +93,27 @@ void FileTransferManager::sendMessage(const QString& ip, const QString& message)
     }
 #endif
 
+// 2. Отримання публічної папки Download
+QString getPublicDownloadDirectory() {
+    #ifdef Q_OS_ANDROID
+        QJniObject dir = QJniObject::callStaticObjectMethod(
+            "android/os/Environment",
+            "getExternalStoragePublicDirectory",
+            "(Ljava/lang/String;)Ljava/io/File;",
+            QJniObject::fromString("Download").object<jstring>()
+            );
+
+        if (dir.isValid()) {
+            QString androidPath = dir.callObjectMethod("getAbsolutePath", "()Ljava/lang/String;").toString();
+            if (!androidPath.isEmpty()) {
+                return androidPath;
+            }
+        }
+    #endif
+        // Для Windows, Mac, Linux або якщо на Android щось пішло не так
+        return QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
+}
+
 // --- ВІДПРАВКА ФАЙЛУ ---
 void FileTransferManager::sendFile(const QString& ip, const QString& filePath) {
     if (isSending) {
@@ -277,11 +298,8 @@ void FileTransferManager::onReadyRead() {
         QString fileName = stringValue;
         bytesReceived = 0;
 
-        QString saveDir = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
-
-        if (saveDir.isEmpty()) {
-            saveDir = "/storage/emulated/0/Download";
-        }
+        // ВАЖЛИВО: Отримуємо справжню публічну папку Download
+        QString saveDir = getPublicDownloadDirectory();
 
         QDir dir(saveDir);
         if (!dir.exists()) dir.mkpath(".");
