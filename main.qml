@@ -93,10 +93,19 @@ ApplicationWindow {
         title: "Оберіть файл для передачі"
         currentFolder: StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
         onAccepted: {
-            let path = selectedFile.toString().replace("file:///", "");
+            // Виправляємо шлях для кросплатформності
+            let urlString = selectedFile.toString();
+            let path = urlString.replace(/^(file:\/{2})\/?/, "");
+            if (Qt.platform.os !== "windows") {
+                path = "/" + path;
+            }
+
             // Запуск передачі
             fileTransferManager.sendFile(selectedDeviceIp, path);
-            transferPopup.open(); // Відкриваємо красивий попап прогресу
+
+            // ВСТАВЛЯЄМО СЮДИ:
+            transferPopup.statusText = "🚀 Відправка файлу...";
+            transferPopup.open();
         }
     }
 
@@ -253,7 +262,6 @@ ApplicationWindow {
         }
     }
 
-    // --- POPUP ПРОГРЕСУ (Замість зсуву екрану) ---
     Popup {
         id: transferPopup
         anchors.centerIn: parent
@@ -262,6 +270,9 @@ ApplicationWindow {
         modal: true
         focus: true
         closePolicy: Popup.NoAutoClose // Забороняємо закривати кліком повз
+
+        // 1. Оголошуємо змінну ТУТ (на рівні самого Popup)
+        property string statusText: "🚀 Відправка файлу..."
 
         background: Rectangle {
             color: cardColor
@@ -275,7 +286,9 @@ ApplicationWindow {
             spacing: 20
 
             Text {
-                text: "🚀 Відправка файлу..."
+                // 2. Вказуємо тексту брати значення з нашої змінної
+                text: transferPopup.statusText
+
                 font.bold: true
                 font.pixelSize: 18
                 color: textColor
@@ -287,7 +300,7 @@ ApplicationWindow {
                 id: progressBar
                 Layout.fillWidth: true
                 value: 0
-                
+
                 background: Rectangle {
                     implicitWidth: 200
                     implicitHeight: 8
@@ -311,7 +324,7 @@ ApplicationWindow {
                 color: subTextColor
                 Layout.alignment: Qt.AlignHCenter
             }
-            
+
             Button {
                 text: "Скасувати"
                 flat: true
@@ -325,19 +338,25 @@ ApplicationWindow {
             }
         }
     }
-
     // --- ЛОГІКА (CONNECTIONS) ---
     Connections {
         target: fileTransferManager
     
         function onProgressUpdated(sent, total) {
+            // Якщо попап закритий, значить це вхідне завантаження! Відкриваємо його.
+            if (!transferPopup.opened) {
+                transferPopup.statusText = "⬇️ Отримання файлу...";
+                transferPopup.open();
+            }
+
             if (total > 0) progressBar.value = sent / total;
         }
 
         function onTransferFinished(success, message) {
             transferPopup.close();
             progressBar.value = 0;
-            console.log("Статус:", message);
+            // Повертаємо текст до стандартного
+            transferPopup.statusText = "🚀 Відправка файлу...";
         }
     
         // Додаємо обробку помилок, щоб закрити вікно

@@ -6,7 +6,39 @@
 #include <QHostInfo>
 #include <QDebug>
 
+// --- ДОДАНІ БІБЛІОТЕКИ ДЛЯ ANDROID ---
+#ifdef Q_OS_ANDROID
+#include <QJniObject>
+#endif
+// -------------------------------------
+
 static const quint16 PORT = 45454;
+
+// --- НОВА ФУНКЦІЯ ДЛЯ ОТРИМАННЯ ІМЕНІ ПРИСТРОЮ ---
+QString getDeviceName() {
+#ifdef Q_OS_ANDROID
+    // Отримуємо марку та модель через Java API
+    QJniObject manufacturer = QJniObject::getStaticObjectField("android/os/Build", "MANUFACTURER", "Ljava/lang/String;");
+    QJniObject model = QJniObject::getStaticObjectField("android/os/Build", "MODEL", "Ljava/lang/String;");
+
+    QString strManufacturer = manufacturer.toString();
+    QString strModel = model.toString();
+
+    // Форматуємо, щоб не було дублювання (наприклад, "Samsung Samsung Galaxy")
+    if (strModel.startsWith(strManufacturer, Qt::CaseInsensitive)) {
+        if (!strModel.isEmpty()) strModel[0] = strModel[0].toUpper();
+        return strModel;
+    } else {
+        if (!strManufacturer.isEmpty()) strManufacturer[0] = strManufacturer[0].toUpper();
+        return strManufacturer + " " + strModel;
+    }
+#else
+    // Якщо це Windows/Linux/macOS, залишаємо стандартне ім'я
+    return QHostInfo::localHostName();
+#endif
+}
+// -------------------------------------------------
+
 
 DiscoveryManager::DiscoveryManager(QObject* parent) : QObject(parent) {
     udpSocket = new QUdpSocket(this);
@@ -26,7 +58,7 @@ DiscoveryManager::DiscoveryManager(QObject* parent) : QObject(parent) {
                 QString ipToRemove = it.key();
                 it = lastSeen.erase(it);
 
-                // ЗМІНА 4: Шукаємо та видаляємо об'єкт зі списку за IP
+                // Шукаємо та видаляємо об'єкт зі списку за IP
                 for (int i = 0; i < m_peers.size(); ++i) {
                     if (m_peers[i].toMap()["ip"].toString() == ipToRemove) {
                         m_peers.removeAt(i);
@@ -41,7 +73,7 @@ DiscoveryManager::DiscoveryManager(QObject* parent) : QObject(parent) {
                 ++it;
             }
         }
-        });
+    });
 
     timeoutTimer->start(5000);
 }
@@ -56,7 +88,9 @@ void DiscoveryManager::startBroadcasting() {
 void DiscoveryManager::sendBroadcast() {
     QJsonObject json;
     json["type"] = "discovery";
-    json["user"] = QHostInfo::localHostName();
+
+    // --- ЗМІНЕНИЙ РЯДОК: Замість QHostInfo::localHostName() використовуємо нашу функцію ---
+    json["user"] = getDeviceName();
 
     QByteArray data = QJsonDocument(json).toJson(QJsonDocument::Compact);
 
@@ -74,22 +108,29 @@ void DiscoveryManager::sendBroadcast() {
         for (const QNetworkAddressEntry& entry : interface.addressEntries()) {
             if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol && !entry.broadcast().isNull()) {
                 udpSocket->writeDatagram(data, entry.broadcast(), PORT);
-                // qDebug() << "Broadcast sent to:" << entry.broadcast().toString() << "on interface:" << interface.humanReadableName();
             }
         }
     }
 }
 
 void DiscoveryManager::processPendingDatagrams() {
+    // Отримуємо список усіх IP-адрес нашого комп'ютера
+    const QList<QHostAddress> localAddresses = QNetworkInterface::allAddresses();
+
     while (udpSocket->hasPendingDatagrams()) {
         QNetworkDatagram datagram = udpSocket->receiveDatagram();
+
+        // Перевіряємо, чи відправник - це не ми самі
+        if (localAddresses.contains(datagram.senderAddress())) {
+            continue; // Це наш власний пакет, ігноруємо його і йдемо далі
+        }
+
         QJsonDocument doc = QJsonDocument::fromJson(datagram.data());
 
         if (!doc.isNull() && doc.isObject()) {
             QJsonObject obj = doc.object();
             if (obj["type"].toString() == "discovery") {
                 QString name = obj["user"].toString();
-                // ЗМІНА 5: Очищуємо IP одразу тут
                 QString ip = datagram.senderAddress().toString().replace("::ffff:", "");
 
                 // Якщо це новий пристрій (перевіряємо по lastSeen)
@@ -100,8 +141,6 @@ void DiscoveryManager::processPendingDatagrams() {
 
                     m_peers.append(peer);
                     emit peersChanged();
-
-                    // Відправляємо сигнал (для логів)
                     emit peerFound(ip, name);
                 }
 

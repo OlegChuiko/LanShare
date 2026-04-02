@@ -2,6 +2,7 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext> // ОБОВ'ЯЗКОВО для setContextProperty
 
+
 // Підключаємо твої менеджери
 #include "discoverymanager.h"
 #include "filetransfermanager.h"

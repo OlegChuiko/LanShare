@@ -2,10 +2,15 @@
 #include <QDataStream>
 #include <QHostAddress>
 #include <QStandardPaths>
-#include <QCoreApplication> 
-#include <QUrl>              
-#include <QDesktopServices>  
-#include <QDir>              
+#include <QCoreApplication>
+#include <QUrl>
+#include <QDesktopServices>
+#include <QDir>
+
+#ifdef Q_OS_ANDROID
+    #include <QJniObject>
+    #include <QCoreApplication>
+#endif
 
 static const quint16 TRANSFER_PORT = 45455;
 static const qint64 CHUNK_SIZE = 64 * 1024; // 64 KB
@@ -44,6 +49,50 @@ void FileTransferManager::sendMessage(const QString& ip, const QString& message)
     connect(msgSocket, &QTcpSocket::disconnected, msgSocket, &QTcpSocket::deleteLater);
 }
 
+#ifdef Q_OS_ANDROID
+    QString getAndroidFileName(const QString &contentUri) {
+        // 1. Конвертуємо рядок у Java-об'єкт Uri
+        QJniObject jUriString = QJniObject::fromString(contentUri);
+        QJniObject uri = QJniObject::callStaticObjectMethod("android/net/Uri",
+                                                            "parse",
+                                                            "(Ljava/lang/String;)Landroid/net/Uri;",
+                                                            jUriString.object<jstring>());
+
+        // 2. Отримуємо Context та ContentResolver
+        QJniObject context = QNativeInterface::QAndroidApplication::context();
+        if (!context.isValid()) return "";
+
+        QJniObject contentResolver = context.callObjectMethod("getContentResolver", "()Landroid/content/ContentResolver;");
+        if (!contentResolver.isValid()) return "";
+
+        // 3. Робимо запит до бази даних (Cursor query)
+        QJniObject cursor = contentResolver.callObjectMethod(
+            "query",
+            "(Landroid/net/Uri;[Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;Ljava/lang/String;)Landroid/database/Cursor;",
+            uri.object(), nullptr, nullptr, nullptr, nullptr
+            );
+
+        QString fileName;
+        if (cursor.isValid()) {
+            // Переходимо до першого запису в таблиці
+            if (cursor.callMethod<jboolean>("moveToFirst")) {
+                // Шукаємо колонку "_display_name" (це стандартна колонка Android для імен файлів)
+                QJniObject columnName = QJniObject::fromString("_display_name");
+                jint columnIndex = cursor.callMethod<jint>("getColumnIndex", "(Ljava/lang/String;)I", columnName.object<jstring>());
+
+                if (columnIndex != -1) {
+                    QJniObject nameObj = cursor.callObjectMethod("getString", "(I)Ljava/lang/String;", columnIndex);
+                    if (nameObj.isValid()) {
+                        fileName = nameObj.toString();
+                    }
+                }
+            }
+            cursor.callMethod<void>("close"); // Обов'язково закриваємо Cursor, щоб не було витоку пам'яті
+        }
+        return fileName;
+    }
+#endif
+
 // --- ВІДПРАВКА ФАЙЛУ ---
 void FileTransferManager::sendFile(const QString& ip, const QString& filePath) {
     if (isSending) {
@@ -51,9 +100,21 @@ void FileTransferManager::sendFile(const QString& ip, const QString& filePath) {
         return;
     }
 
-    sourceFile = new QFile(filePath);
+    // --- СУПЕР-ОЧИСТКА ШЛЯХУ ---
+    QString realFilePath = filePath;
+
+    if (realFilePath.startsWith("file://")) {
+        realFilePath.remove("file://");
+    }
+
+    if (realFilePath.startsWith("/content://")) {
+        realFilePath.remove(0, 1);
+    }
+    // ----------------------------
+
+    sourceFile = new QFile(realFilePath);
     if (!sourceFile->open(QIODevice::ReadOnly)) {
-        emit errorOccurred("Не вдалося відкрити файл для читання");
+        emit errorOccurred("Не вдалося відкрити файл: " + realFilePath);
         delete sourceFile;
         sourceFile = nullptr;
         return;
@@ -65,30 +126,42 @@ void FileTransferManager::sendFile(const QString& ip, const QString& filePath) {
     senderSocket = new QTcpSocket(this);
     senderSocket->connectToHost(ip, TRANSFER_PORT);
 
-    connect(senderSocket, &QTcpSocket::connected, [this, filePath]() {
-        QFileInfo fileInfo(filePath);
+    connect(senderSocket, &QTcpSocket::connected, [this, realFilePath]() {
+        QFileInfo fileInfo(realFilePath);
+        QString fileName = fileInfo.fileName();
+
+        // --- ВИТЯГУЄМО СПРАВЖНЄ ІМ'Я НА ANDROID ---
+#ifdef Q_OS_ANDROID
+    if (realFilePath.startsWith("content://")) {
+        QString androidRealName = getAndroidFileName(realFilePath);
+        if (!androidRealName.isEmpty()) {
+            fileName = androidRealName;
+        }
+    }
+#endif
+
+        // Страховка на випадок, якщо щось піде не так
+        if (fileName.isEmpty() || fileName.contains("/")) {
+            fileName = "shared_file.dat";
+        }
+
         QByteArray block;
         QDataStream out(&block, QIODevice::WriteOnly);
         out.setVersion(QDataStream::Qt_6_0);
 
-        // ПРОТОКОЛ:
-        // 1. Розмір файлу (> 0)
-        // 2. Ім'я файлу
         out << totalBytesToSend;
-        out << fileInfo.fileName();
+        out << fileName;
 
         senderSocket->write(block);
         isSending = true;
-        });
+    });
 
     connect(senderSocket, &QTcpSocket::bytesWritten, this, &FileTransferManager::onBytesWritten);
 
     connect(senderSocket, &QTcpSocket::errorOccurred, [this](QAbstractSocket::SocketError) {
-        if (isSending) {
-            emit errorOccurred("Помилка сокета: " + senderSocket->errorString());
-            cancelTransfer();
-        }
-        });
+        emit errorOccurred("Помилка сокета: " + senderSocket->errorString());
+        cancelTransfer();
+    });
 }
 
 void FileTransferManager::onBytesWritten(qint64 bytes) {
@@ -151,70 +224,92 @@ void FileTransferManager::onReadyRead() {
     if (!socket) return;
 
     // СЦЕНАРІЙ 1: Ми вже приймаємо тіло файлу
-    if (targetFile && targetFile->isOpen()) {
+    if (totalBytesExpected > 0 && targetFile && targetFile->isOpen()) {
         QByteArray data = socket->readAll();
         targetFile->write(data);
         bytesReceived += data.size();
+
         emit progressUpdated(bytesReceived, totalBytesExpected);
 
+        // Перевіряємо, чи завантажили ми файл повністю
         if (bytesReceived >= totalBytesExpected) {
             QString fullPath = QFileInfo(targetFile->fileName()).absoluteFilePath();
             QString folderPath = QFileInfo(targetFile->fileName()).absolutePath();
+
             targetFile->close();
+            delete targetFile;
+            targetFile = nullptr;
+            totalBytesExpected = 0; // Скидаємо стан для наступних передач!
 
             emit fileReceived(QFileInfo(fullPath).fileName(), fullPath);
-            QDesktopServices::openUrl(QUrl::fromLocalFile(folderPath)); // Відкрити папку (Windows)
+            QDesktopServices::openUrl(QUrl::fromLocalFile(folderPath));
         }
+        return; // Виходимо, бо ми обробили шматок файлу
+    }
+
+    // СЦЕНАРІЙ 2: Чекаємо на заголовок (Повідомлення або старт Файлу)
+    QDataStream in(socket);
+    in.setVersion(QDataStream::Qt_6_0);
+
+    // Запускаємо транзакцію!
+    in.startTransaction();
+
+    qint64 headerValue;
+    QString stringValue;
+    in >> headerValue >> stringValue;
+
+    // Якщо дані ще не долетіли повністю, commitTransaction поверне false.
+    // Ми просто виходимо з функції і чекаємо наступного сигналу readyRead.
+    if (!in.commitTransaction()) {
         return;
     }
 
-    // СЦЕНАРІЙ 2: Нове з'єднання (Заголовок файлу АБО Повідомлення)
-    if (totalBytesExpected == 0) {
-        QDataStream in(socket);
-        in.setVersion(QDataStream::Qt_6_0);
+    // --- Якщо ми дійшли сюди, значить весь заголовок 100% прочитано! ---
 
-        if (socket->bytesAvailable() < sizeof(qint64)) return; // Чекаємо на розмір
+    if (headerValue == 0) {
+        // === ЦЕ ПОВІДОМЛЕННЯ ===
+        QString senderIp = socket->peerAddress().toString().replace("::ffff:", "");
+        emit messageReceived(senderIp, stringValue);
 
-        qint64 headerValue;
-        in >> headerValue;
+    } else {
+        // === ЦЕ ФАЙЛ ===
+        totalBytesExpected = headerValue;
+        QString fileName = stringValue;
+        bytesReceived = 0;
 
-        if (headerValue == 0) {
-            // === ЦЕ ПОВІДОМЛЕННЯ ===
-            QString msg;
-            in >> msg;
-            QString senderIp = socket->peerAddress().toString().replace("::ffff:", "");
-            emit messageReceived(senderIp, msg);
-            isReceivingMessage = true;
+        QString saveDir = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
+
+        if (saveDir.isEmpty()) {
+            saveDir = "/storage/emulated/0/Download";
         }
-        else {
-            // === ЦЕ ФАЙЛ ===
-            totalBytesExpected = headerValue;
-            QString fileName;
-            in >> fileName;
 
-            // Збереження в папку завантажень
-            QString saveDir = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
-            if (saveDir.isEmpty()) saveDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+        QDir dir(saveDir);
+        if (!dir.exists()) dir.mkpath(".");
 
-            QDir dir(saveDir);
-            if (!dir.exists()) dir.mkpath(".");
+        QString finalPath = dir.filePath(fileName);
+        int i = 1;
+        while (QFile::exists(finalPath)) {
+            QFileInfo checkInfo(fileName);
+            finalPath = dir.filePath(checkInfo.baseName() + "_" + QString::number(i++) + "." + checkInfo.completeSuffix());
+        }
 
-            QString finalPath = dir.filePath(fileName);
-            targetFile = new QFile(finalPath);
+        targetFile = new QFile(finalPath);
 
-            if (!targetFile->open(QIODevice::WriteOnly)) {
-                emit errorOccurred("Не вдалося створити файл: " + finalPath);
-                return;
-            }
+        if (!targetFile->open(QIODevice::WriteOnly)) {
+            // Якщо помилка тут - значить точно немає дозволу на запис в пам'ять
+            emit errorOccurred("Доступ заборонено! Перевірте дозволи додатка: " + finalPath);
+            totalBytesExpected = 0;
+            return;
+        }
 
-            // Якщо в буфері залишились дані (початок файлу), записуємо їх
-            if (!in.atEnd()) {
-                // Увага: QDataStream вже "з'їв" заголовок, але дані файлу йдуть "сирими" після нього.
-                // Тому читаємо решту буфера сокета безпосередньо.
-                QByteArray remainingData = socket->readAll();
-                targetFile->write(remainingData);
-                bytesReceived += remainingData.size();
-            }
+        // ВАЖЛИВО: Оскільки ми використовували транзакцію, QDataStream забрав
+        // рівно стільки байт, скільки займає заголовок. Якщо відправник уже
+        // встиг надіслати перші байти самого файлу, вони все ще лежать у сокеті!
+        if (socket->bytesAvailable() > 0) {
+            QByteArray remainingData = socket->readAll();
+            targetFile->write(remainingData);
+            bytesReceived += remainingData.size();
+            emit progressUpdated(bytesReceived, totalBytesExpected);
         }
     }
 }

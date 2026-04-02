@@ -6,7 +6,7 @@ buildscript {
 
     dependencies {
         //noinspection AndroidGradlePluginVersion
-        classpath 'com.android.tools.build:gradle:8.10.1'
+        classpath 'com.android.tools.build:gradle:8.6.0'
     }
 }
 
@@ -20,7 +20,7 @@ apply plugin: qtGradlePluginType
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
     //noinspection GradleDependency
-    implementation 'androidx.core:core:1.16.0'
+    implementation 'androidx.core:core:1.13.1'
 }
 
 android {
@@ -38,10 +38,13 @@ android {
      * Changing them manually might break the compilation!
      *******************************************************/
 
-    namespace = androidPackageName
+    namespace androidPackageName
     compileSdkVersion androidCompileSdkVersion
     buildToolsVersion androidBuildToolsVersion
-    ndkVersion = androidNdkVersion
+    ndkVersion androidNdkVersion
+
+    // Extract native libraries from the APK
+    packagingOptions.jniLibs.useLegacyPackaging true
 
     sourceSets {
         main {
@@ -58,7 +61,6 @@ android {
 
     tasks.withType(JavaCompile) {
         options.incremental = true
-        options.compilerArgs += ['-Xlint:all']
     }
 
     compileOptions {
@@ -67,18 +69,18 @@ android {
     }
 
     lintOptions {
-        abortOnError = false
+        abortOnError false
     }
 
+    // Do not compress Qt binary resources file
     aaptOptions {
-        // Do not compress Qt binary resources file
         noCompress 'rcc'
     }
 
     defaultConfig {
         resConfig "en"
-        minSdkVersion 28
-        targetSdkVersion 34
+        minSdkVersion qtMinSdkVersion
+        targetSdkVersion qtTargetSdkVersion
         ndk.abiFilters = qtTargetAbiList.split(",")
     }
 }
