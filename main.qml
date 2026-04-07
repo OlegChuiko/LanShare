@@ -87,24 +87,30 @@ ApplicationWindow {
         }
     }
 
-    // --- ВИБІР ФАЙЛУ ---
+    // --- ВИБІР ФАЙЛУ/ФАЙЛІВ ---
     FileDialog {
         id: filePicker
-        title: "Оберіть файл для передачі"
+        title: "Оберіть файли для передачі"
         currentFolder: StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
+        fileMode: FileDialog.OpenFiles // ВАЖЛИВО: Дозволяємо вибирати кілька файлів
+
         onAccepted: {
-            // Виправляємо шлях для кросплатформності
-            let urlString = selectedFile.toString();
-            let path = urlString.replace(/^(file:\/{2})\/?/, "");
-            if (Qt.platform.os !== "windows") {
-                path = "/" + path;
+            let paths = [];
+            // Проходимось по всіх обраних файлах
+            for (let i = 0; i < selectedFiles.length; ++i) {
+                let urlString = selectedFiles[i].toString();
+                let path = urlString.replace(/^(file:\/{2})\/?/, "");
+                if (Qt.platform.os !== "windows") {
+                    path = "/" + path;
+                }
+                paths.push(path);
             }
 
-            // Запуск передачі
-            fileTransferManager.sendFile(selectedDeviceIp, path);
+            // Запуск передачі черги файлів (викликаємо новий метод!)
+            fileTransferManager.sendFiles(selectedDeviceIp, paths);
 
-            // ВСТАВЛЯЄМО СЮДИ:
-            transferPopup.statusText = "🚀 Відправка файлу...";
+            transferPopup.statusText = "🚀 Відправка файлів...";
+            transferPopup.statsText = "Обчислення швидкості..."; // Скидаємо текст статистики
             transferPopup.open();
         }
     }
@@ -266,13 +272,13 @@ ApplicationWindow {
         id: transferPopup
         anchors.centerIn: parent
         width: 300
-        height: 180
+        height: 210 // Трохи збільшили висоту для нового тексту
         modal: true
         focus: true
-        closePolicy: Popup.NoAutoClose // Забороняємо закривати кліком повз
+        closePolicy: Popup.NoAutoClose
 
-        // 1. Оголошуємо змінну ТУТ (на рівні самого Popup)
         property string statusText: "🚀 Відправка файлу..."
+        property string statsText: "Обчислення швидкості..." // НОВА ЗМІННА ДЛЯ ШВИДКОСТІ
 
         background: Rectangle {
             color: cardColor
@@ -283,45 +289,46 @@ ApplicationWindow {
         ColumnLayout {
             anchors.fill: parent
             anchors.margins: 20
-            spacing: 20
+            spacing: 15 // Трохи зменшив відступи, щоб було компактніше
 
             Text {
-                // 2. Вказуємо тексту брати значення з нашої змінної
                 text: transferPopup.statusText
-
                 font.bold: true
                 font.pixelSize: 18
                 color: textColor
                 Layout.alignment: Qt.AlignHCenter
             }
 
-            // Крутий прогрес-бар
+            // Прогрес-бар залишаємо без змін
             ProgressBar {
                 id: progressBar
                 Layout.fillWidth: true
                 value: 0
-
                 background: Rectangle {
-                    implicitWidth: 200
-                    implicitHeight: 8
-                    color: "#E0E0E0"
-                    radius: 4
+                    implicitWidth: 200; implicitHeight: 8; color: "#E0E0E0"; radius: 4
                 }
                 contentItem: Item {
-                    implicitWidth: 200
-                    implicitHeight: 8
+                    implicitWidth: 200; implicitHeight: 8
                     Rectangle {
                         width: progressBar.visualPosition * parent.width
-                        height: 8
-                        radius: 4
-                        color: primaryColor
+                        height: 8; radius: 4; color: primaryColor
                     }
                 }
             }
 
+            // Відсотки
             Text {
                 text: (progressBar.value * 100).toFixed(0) + "%"
+                color: textColor
+                font.bold: true
+                Layout.alignment: Qt.AlignHCenter
+            }
+
+            // НОВИЙ ТЕКСТ: ШВИДКІСТЬ ТА ETA
+            Text {
+                text: transferPopup.statsText
                 color: subTextColor
+                font.pixelSize: 12
                 Layout.alignment: Qt.AlignHCenter
             }
 
@@ -330,7 +337,6 @@ ApplicationWindow {
                 flat: true
                 Layout.alignment: Qt.AlignHCenter
                 onClicked: {
-                    // Викликаємо нову функцію C++
                     fileTransferManager.cancelTransfer()
                     transferPopup.close()
                     console.log("Передачу скасовано користувачем")
@@ -341,33 +347,36 @@ ApplicationWindow {
     // --- ЛОГІКА (CONNECTIONS) ---
     Connections {
         target: fileTransferManager
-    
+
+        // НОВА ФУНКЦІЯ: Приймаємо швидкість та час
+        function onTransferStatsUpdated(speed, eta) {
+            transferPopup.statsText = "Швидкість: " + speed + " | Залишилось: " + eta;
+        }
+
         function onProgressUpdated(sent, total) {
-            // Якщо попап закритий, значить це вхідне завантаження! Відкриваємо його.
             if (!transferPopup.opened) {
-                transferPopup.statusText = "⬇️ Отримання файлу...";
+                transferPopup.statusText = "⬇️ Отримання файлів...";
+                transferPopup.statsText = "Обчислення швидкості...";
                 transferPopup.open();
             }
-
             if (total > 0) progressBar.value = sent / total;
         }
 
         function onTransferFinished(success, message) {
             transferPopup.close();
             progressBar.value = 0;
-            // Повертаємо текст до стандартного
-            transferPopup.statusText = "🚀 Відправка файлу...";
+            transferPopup.statusText = "🚀 Відправка файлів...";
+            transferPopup.statsText = "Обчислення швидкості...";
         }
-    
-        // Додаємо обробку помилок, щоб закрити вікно
+
         function onErrorOccurred(error) {
             transferPopup.close();
             progressBar.value = 0;
             console.log("Помилка:", error);
-            // Тут можна показати MessageDialog з помилкою
         }
 
         function onFileReceived(fileName, fullPath) {
+            // Тепер fullPath може вказувати на останній файл з папки
             receivedDialog.fullPath = fullPath;
             receivedDialog.open();
         }

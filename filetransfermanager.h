@@ -8,6 +8,8 @@
 #include <QFileInfo>
 #include <QDebug>
 #include <QTimer>
+#include <QElapsedTimer>
+#include <QStringList>
 
 class FileTransferManager : public QObject {
     Q_OBJECT
@@ -18,6 +20,7 @@ public:
     Q_INVOKABLE void sendFile(const QString& ip, const QString& filePath);
     Q_INVOKABLE void sendMessage(const QString& ip, const QString& message); // ПОВЕРНУЛИ
     Q_INVOKABLE void cancelTransfer();
+    Q_INVOKABLE void sendFiles(const QString& ip, const QStringList& filePaths);
 
 signals:
     // --- СИГНАЛИ ---
@@ -26,6 +29,7 @@ signals:
     void transferFinished(bool success, const QString& message);
     void fileReceived(const QString& fileName, const QString& fullPath);
     void messageReceived(const QString& fromIp, const QString& message); // ПОВЕРНУЛИ
+    void transferStatsUpdated(QString speed, QString eta); // Швидкість та час
 
 private slots:
     void onNewConnection();
@@ -49,7 +53,15 @@ private:
     QFile* sourceFile;
     qint64 totalBytesToSend;
     qint64 bytesWrittenTotal;
+    qint64 lastUiUpdateTime = 0;
     bool isSending;
+
+    QElapsedTimer transferTimer; // Для підрахунку швидкості
+    QStringList fileQueue;       // Черга файлів для відправки
+    QString currentTargetIp;     // IP-адреса, куди зараз йде відправка
+
+    void processNextFile();      // Метод, який бере наступний файл з черги
+    void updateStats(qint64 transferred, qint64 total); // Метод для прорахунку
 };
 
 #endif
